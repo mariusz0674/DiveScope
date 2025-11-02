@@ -6,7 +6,7 @@
   "manifest_version": 3,
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_icon": "icons/main-icon.png"
+    "default_icon": "src/icons/main-icon.png"
   },
   "content_scripts": [
     {

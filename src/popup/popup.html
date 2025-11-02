@@ -1,12 +1,21 @@
-<html lang="en">
+<!doctype html>
+<html lang="pl">
 <head>
+    <meta charset="utf-8">
     <title>Div Scope</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+<div class="card">
     <h1>Div Scope</h1>
-    <button id="highlightElements">Pokaz granice divw</button>
-    <button id="mouseFreeze">Debugger freeze (1s)</button>
 
-    <script src="popup.js"></script>
+    <div class="actions">
+        <button id="highlightElements" class="btn">Pokaż granice divów</button>
+        <button id="mouseFreeze" class="btn">Debugger freeze (1s)</button>
+    </div>
+</div>
+
+<script src="popup.js"></script>
 </body>
 </html>

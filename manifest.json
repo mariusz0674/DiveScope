@@ -1,0 +1,20 @@
+{
+  "name": "Dive Scope",
+  "description": "HTML measurement",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting"],
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": "icons/main-icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/scripts/highlighter.js",
+        "src/scripts/freezer.js"
+      ]
+    }
+  ]
+}

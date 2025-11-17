@@ -310,7 +310,7 @@
 
         // dystans poziomy – minimalna odległość między prostokątami po osi X
         let dx;
-        let dxDir = '';
+        let dxDir;
         if (b.left > a.right) {
             dx = Math.round(b.left - a.right);
             dxDir = '→';
@@ -324,7 +324,7 @@
 
         // dystans pionowy – minimalna odległość między prostokątami po osi Y
         let dy;
-        let dyDir = '';
+        let dyDir;
         if (b.top > a.bottom) {
             dy = Math.round(b.top - a.bottom);
             dyDir = '↓';

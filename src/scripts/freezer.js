@@ -25,7 +25,9 @@
     }
 
     function makeBanner(waiting = false) {
-        if (banner) return banner;
+        if (banner) {
+            return banner;
+        }
         banner = document.createElement('div');
         banner.id = '__mouse_freezer_banner__';
         Object.assign(banner.style, {
@@ -62,7 +64,9 @@
     }
 
     function removeBanner() {
-        if (banner?.parentNode) banner.parentNode.removeChild(banner);
+        if (banner?.parentNode) {
+            banner.parentNode.removeChild(banner);
+        }
         banner = null;
         labelEl = null;
     }
@@ -86,18 +90,26 @@
     }
 
     function enable() {
-        if (on) return;
+        if (on) {
+            return;
+        }
         on = true;
 
         MOUSE_EVENTS.forEach(ev => addCapture(ev, blockMouse));
         PAGE_EVENTS.forEach(ev => addCapture(ev, blockPageEvent));
 
-        if (!banner) makeBanner(false);
-        if (labelEl) labelEl.textContent = 'Mouse Freeze: ON';
+        if (!banner) {
+            makeBanner(false);
+        }
+        if (labelEl) {
+            labelEl.textContent = 'Mouse Freeze: ON';
+        }
     }
 
     function disable() {
-        if (!on && !banner) return;
+        if (!on && !banner) {
+            return;
+        }
         on = false;
         while (offFns.length) offFns.pop()();
         removeBanner();

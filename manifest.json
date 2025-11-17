@@ -13,7 +13,8 @@
       "matches": ["<all_urls>"],
       "js": [
         "src/scripts/highlighter.js",
-        "src/scripts/freezer.js"
+        "src/scripts/freezer.js",
+        "src/scripts/distancer.js"
       ]
     }
   ]

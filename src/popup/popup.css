@@ -1,63 +1,138 @@
-:root{
-    --bg:#0f1115;
-    --panel:#171b23;
-    --text:#e6e6ea;
-    --muted:#9aa4b2;
-    --border:#23293a;
-    --btn-bg:#1b2130;
-    --btn-bg-hover:#242c40;
-    --shadow:0 8px 24px rgba(0,0,0,.45);
-    --radius:12px;
+:root {
+    --bg: #05060a;
+    --panel: #10131b;
+    --text: #f5f7fb;
+    --muted: #9aa4b2;
+    --border: #1e2636;
+    --btn-bg: #171d2b;
+    --btn-bg-hover: #1f2636;
+    --accent: #3fb950;
+    --accent-soft: rgba(63, 185, 80, .18);
+    --radius: 14px;
 }
 
-*{box-sizing:border-box}
-html,body{margin:0}
-body{
-    background:var(--bg);
-    color:var(--text);
-    font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
-    padding:14px;
-    min-width:260px;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0
 }
 
-.card{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    box-shadow:var(--shadow);
-    padding:14px;
+body {
+    color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+    min-width: 260px;
+    background: #10131b;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    padding: 14px 14px 16px;
 }
 
-h1{
-    margin:0 0 12px;
-    font-size:16px;
-    font-weight:700;
+h1 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: linear-gradient(120deg, #1f6feb, #3fb950, #1f6feb);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: titleGradient 4s ease-in-out infinite;
 }
 
-.actions{
-    display:grid;
-    gap:10px;
+h1::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 4px;
+    height: 22px;
+    background: linear-gradient(120deg, rgba(31, 111, 235, .6), rgba(63, 185, 80, .6), rgba(31, 111, 235, .6));
+    filter: blur(16px);
+    opacity: .4;
+    z-index: -1;
 }
 
-.btn{
-    appearance:none;
-    border:1px solid var(--border);
-    background:var(--btn-bg);
-    color:var(--text);
-    border-radius:10px;
-    padding:10px 12px;
-    cursor:pointer;
-    transition:background .15s ease, transform .05s ease, border-color .15s ease;
-    text-align:center;
+@keyframes titleGradient {
+    0% {
+        background-position: 0 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
 }
-.btn:hover{
-    background:var(--btn-bg-hover);
-    border-color:#354062;
+
+.subtitle {
+    font-size: 12px;
+    color: var(--muted);
 }
-.btn:active{
-    transform:translateY(1px);
+
+.actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
 }
-.btn:focus-visible{
-    outline:2px solid #6ea8fe;
-    outline-offset:2px;
+
+.btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--btn-bg);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 9px 11px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: background .15s ease,
+    border-color .15s ease,
+    transform .05s ease,
+    box-shadow .15s ease;
+}
+
+.btn:hover {
+    background: var(--btn-bg-hover);
+    border-color: #354062;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn:focus-visible {
+    outline: 2px solid #6ea8fe;
+    outline-offset: 2px;
+}
+
+.btn.active {
+    background: linear-gradient(135deg, #1f6feb, #238636);
+    border-color: var(--accent);
+    color: #f7fafd;
+    box-shadow: 0 0 0 1px rgba(63, 185, 80, .5),
+    0 0 0 4px var(--accent-soft);
+    position: relative;
+}
+
+.btn.active::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(63, 185, 80, .9);
+}
+
+.btn.active {
+    padding-left: 24px;
 }

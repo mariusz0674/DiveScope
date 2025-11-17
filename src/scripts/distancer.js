@@ -11,6 +11,11 @@
     let highlightStyleEl = null;
 
     function enableMeasurer() {
+        if (measureEnabled) {
+            return;
+        }
+        measureEnabled = true;
+
         injectHighlightStyles();
         createUI();
         applyCursorOverride();
@@ -25,6 +30,11 @@
     }
 
     function disableMeasurer() {
+        if (!measureEnabled) {
+            return;
+        }
+        measureEnabled = false;
+
         clearBase();
         clearTarget();
         clearHover();
@@ -42,7 +52,9 @@
     }
 
     function injectHighlightStyles() {
-        if (highlightStyleEl) return;
+        if (highlightStyleEl) {
+            return;
+        }
         highlightStyleEl = document.createElement('style');
         highlightStyleEl.textContent = `
             .distancer-base {
@@ -62,7 +74,9 @@
     }
 
     function removeHighlightStyles() {
-        if (highlightStyleEl?.parentNode) highlightStyleEl.parentNode.removeChild(highlightStyleEl);
+        if (highlightStyleEl?.parentNode) {
+            highlightStyleEl.parentNode.removeChild(highlightStyleEl);
+        }
         highlightStyleEl = null;
     }
 
@@ -115,41 +129,60 @@
     }
 
     function destroyUI() {
-        if (tooltipEl?.parentNode) tooltipEl.parentNode.removeChild(tooltipEl);
-        if (lineXEl?.parentNode) lineXEl.parentNode.removeChild(lineXEl);
-        if (lineYEl?.parentNode) lineYEl.parentNode.removeChild(lineYEl);
+        if (tooltipEl?.parentNode) {
+            tooltipEl.parentNode.removeChild(tooltipEl);
+        }
+        if (lineXEl?.parentNode) {
+            lineXEl.parentNode.removeChild(lineXEl);
+        }
+        if (lineYEl?.parentNode) {
+            lineYEl.parentNode.removeChild(lineYEl);
+        }
         tooltipEl = null;
         lineXEl = null;
         lineYEl = null;
     }
 
     function applyCursorOverride() {
-        if (cursorStyleEl) return;
+        if (cursorStyleEl) {
+            return;
+        }
         cursorStyleEl = document.createElement('style');
         cursorStyleEl.textContent = `* { cursor: default !important; }`;
         document.head.appendChild(cursorStyleEl);
     }
 
     function removeCursorOverride() {
-        if (cursorStyleEl?.parentNode) cursorStyleEl.parentNode.removeChild(cursorStyleEl);
+        if (cursorStyleEl?.parentNode) {
+            cursorStyleEl.parentNode.removeChild(cursorStyleEl);
+        }
         cursorStyleEl = null;
     }
 
     // Blokujemy normalne zachowanie kliknięć (buttons, links itd.)
     function swallowEvent(e) {
-        if (!measureEnabled) return;
-        if (isUiElement(e.target)) return;
+        if (!measureEnabled) {
+            return;
+        }
+        if (isUiElement(e.target)) {
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
     }
 
     function onClick(e) {
-        if (!measureEnabled) return;
-        if (!(e.target instanceof Element)) return;
-        if (isUiElement(e.target)) return;
+        if (!measureEnabled) {
+            return;
+        }
+        if (!(e.target instanceof Element)) {
+            return;
+        }
+        if (isUiElement(e.target)) {
+            return;
+        }
 
-        // blokada kliknięcia (na wszelki wypadek drugi raz)
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -158,8 +191,12 @@
     }
 
     function onPointerMove(e) {
-        if (!measureEnabled) return;
-        if (!(e.target instanceof Element)) return;
+        if (!measureEnabled) {
+            return;
+        }
+        if (!(e.target instanceof Element)) {
+            return;
+        }
 
         const isUi = isUiElement(e.target);
 
@@ -182,7 +219,9 @@
     }
 
     function onKeyDown(e) {
-        if (!measureEnabled) return;
+        if (!measureEnabled) {
+            return;
+        }
         if (e.key === 'Escape') {
             clearBase();
             clearTarget();
@@ -305,7 +344,7 @@
         const centerDx = centerBx - centerAx;
         const centerDy = centerBy - centerAy;
 
-        // Wymiary – żeby było coś sensownego, nawet przy parent/child / overlap
+        // Wymiary – nawet przy parent/child / overlap
         const baseSize = `${Math.round(a.width)}x${Math.round(a.height)} px`;
         const targetSize = `${Math.round(b.width)}x${Math.round(b.height)} px`;
 
@@ -330,8 +369,12 @@
     }
 
     function describeElement(el) {
-        if (!el) return 'null';
-        if (!(el instanceof Element)) return String(el);
+        if (!el) {
+            return 'null';
+        }
+        if (!(el instanceof Element)) {
+            return String(el);
+        }
         let s = el.tagName.toLowerCase();
         if (el.id) s += `#${el.id}`;
         if (el.className && typeof el.className === 'string') {
@@ -342,7 +385,9 @@
     }
 
     function updateTooltipPosition(x, y) {
-        if (!tooltipEl) return;
+        if (!tooltipEl) {
+            return;
+        }
         const off = 14;
         let px = x + off;
         let py = y + off;
@@ -355,7 +400,9 @@
     }
 
     function updateLines(a, b) {
-        if (!lineXEl || !lineYEl) return;
+        if (!lineXEl || !lineYEl) {
+            return;
+        }
 
         const top = Math.round(Math.max(a.top, b.top, 0));
         const bottom = Math.round(Math.min(a.bottom, b.bottom, innerHeight));
@@ -380,13 +427,13 @@
         lineYEl.style.height = `${Math.max(0, bt - t)}px`;
     }
 
-    chrome.runtime.onMessage.addListener((request) => {
-        if (request.action !== 'distancer:toggle') return;
-        measureEnabled = !measureEnabled;
-        if (measureEnabled) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'distancer:active') {
             enableMeasurer();
-        } else {
+        } else if (request.action === 'distancer:deactive') {
             disableMeasurer();
+        } else if (request.action === 'distancer:status') {
+            sendResponse?.({ok: true, active: measureEnabled});
         }
     });
 })();

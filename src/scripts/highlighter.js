@@ -32,6 +32,7 @@
         document.addEventListener('pointerover', onPointerOver, true);
         document.addEventListener('pointermove', onPointerMove, true);
         document.addEventListener('pointerout', onPointerOut, true);
+        highlightEnabled = true;
     }
 
     function disableHighlighter() {
@@ -39,25 +40,38 @@
         document.removeEventListener('pointerover', onPointerOver, true);
         document.removeEventListener('pointermove', onPointerMove, true);
         document.removeEventListener('pointerout', onPointerOut, true);
-        if (tooltipEl?.parentNode) tooltipEl.parentNode.removeChild(tooltipEl);
+        if (tooltipEl?.parentNode) {
+            tooltipEl.parentNode.removeChild(tooltipEl);
+        }
         tooltipEl = null;
+        highlightEnabled = false;
     }
 
     function onPointerOver(e) {
-        if (!highlightEnabled) return;
-        if (e.target === tooltipEl) return;
+        if (!highlightEnabled) {
+            return;
+        }
+        if (e.target === tooltipEl) {
+            return;
+        }
         applyHighlights(e.target);
         updateTooltip(e);
     }
 
     function onPointerMove(e) {
-        if (!highlightEnabled) return;
-        if (!highlightedChain.length) applyHighlights(e.target);
+        if (!highlightEnabled) {
+            return;
+        }
+        if (!highlightedChain.length) {
+            applyHighlights(e.target);
+        }
         updateTooltip(e);
     }
 
     function onPointerOut(e) {
-        if (!highlightEnabled) return;
+        if (!highlightEnabled) {
+            return;
+        }
         if (highlightedChain.length && highlightedChain[0] === e.target) {
             clearHighlights();
             if (tooltipEl) tooltipEl.style.opacity = '0';
@@ -65,7 +79,9 @@
     }
 
     function applyHighlights(target) {
-        if (!(target instanceof Element)) return;
+        if (!(target instanceof Element)) {
+            return;
+        }
 
         const chain = [];
         let cur = target;
@@ -98,11 +114,15 @@
         });
 
         highlightedChain = chain;
-        if (tooltipEl) tooltipEl.style.opacity = '1';
+        if (tooltipEl) {
+            tooltipEl.style.opacity = '1';
+        }
     }
 
     function clearHighlights() {
-        if (!highlightedChain.length) return;
+        if (!highlightedChain.length) {
+            return;
+        }
         highlightedChain.forEach((el) => {
             const prev = prevStyles.get(el);
             if (prev) {
@@ -120,20 +140,30 @@
     }
 
     function arraysShallowEqual(a, b) {
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
         return true;
     }
 
     function updateTooltip(e) {
-        if (!tooltipEl || !(e.target instanceof Element)) return;
+        if (!tooltipEl || !(e.target instanceof Element)) {
+            return;
+        }
 
         const dims = [];
         let cur = e.target;
         while (cur && cur.nodeType === 1) {
             const r = cur.getBoundingClientRect();
             dims.push(`${cur.tagName.toLowerCase()}:${Math.round(r.width)}x${Math.round(r.height)}`);
-            if (cur === document.documentElement) break;
+            if (cur === document.documentElement) {
+                break;
+            }
             cur = cur.parentElement;
         }
         tooltipEl.textContent = dims.join(', ');
@@ -144,17 +174,24 @@
 
         const vw = innerWidth, vh = innerHeight;
         const box = tooltipEl.getBoundingClientRect();
-        if (x + box.width + 8 > vw) x = Math.max(8, vw - box.width - 8);
-        if (y + box.height + 8 > vh) y = Math.max(8, vh - box.height - 8);
+        if (x + box.width + 8 > vw) {
+            x = Math.max(8, vw - box.width - 8);
+        }
+        if (y + box.height + 8 > vh) {
+            y = Math.max(8, vh - box.height - 8);
+        }
 
         tooltipEl.style.left = `${x}px`;
         tooltipEl.style.top = `${y}px`;
     }
 
-    chrome.runtime.onMessage.addListener((request) => {
-        if (request.action !== 'highlightElements') return;
-        highlightEnabled = !highlightEnabled;
-        if (highlightEnabled) enableHighlighter();
-        else disableHighlighter();
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'highlighter:active') {
+            enableHighlighter();
+        } else if (request.action === 'highlighter:deactive') {
+            disableHighlighter();
+        } else if (request.action === 'highlighter:status') {
+            sendResponse?.({ok: true, active: highlightEnabled});
+        }
     });
 })();

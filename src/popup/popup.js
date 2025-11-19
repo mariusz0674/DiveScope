@@ -6,7 +6,7 @@ const highlighterBtn = document.getElementById('highlightElements');
 // popup listeners
 document.getElementById('mouseFreeze').addEventListener('click', function () {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'});
+        chrome.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'}).then();
     });
 });
 
@@ -17,7 +17,7 @@ highlighterBtn.addEventListener('click', function () {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'highlighter:active' : 'highlighter:deactive'
-        });
+        }).then();
     });
 });
 
@@ -28,12 +28,12 @@ distancerBtn.addEventListener('click', function () {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
         chrome.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'distancer:active' : 'distancer:deactive'
-        });
+        }).then();
     });
 });
 
 
-// Sync status from content script on popup init
+// Sync status from content-script on popup init
 syncHighlighterState();
 syncDistancerState();
 

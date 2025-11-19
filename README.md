@@ -1,4 +1,17 @@
-# Jak uruchomić rozszerzenie w Chrome w trybie developerskim
+# Jak uruchomić rozszerzenie w Chrome lub Firefox w trybie developerskim
+Nie trzeba ręcznie ładować rozszerzenia do przeglądarki.
+Wystarczy uruchomić jeden ze skryptów w `package.json`;
+Dla firefox
+```sh
+npm run start:firefox 
+```
+Dla chrome
+```sh
+npm run start:chrome 
+```
+Wcześniej oczywiście uruchamiając `npm install` aby zainstalować zależności.
+
+# Jak uruchomić manualnie rozszerzenie w Chrome w trybie developerskim
 
 1. Otwórz Chrome i przejdź do: `chrome://extensions/`
 2. Włącz **Developer mode** (prawy górny róg strony rozszerzeń).

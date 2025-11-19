@@ -1,4 +1,5 @@
 (() => {
+    const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
     let measureEnabled = false;
     let baseElement = null;
     let hoverElement = null;
@@ -427,7 +428,7 @@
         lineYEl.style.height = `${Math.max(0, bt - t)}px`;
     }
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'distancer:active') {
             enableMeasurer();
         } else if (request.action === 'distancer:deactive') {

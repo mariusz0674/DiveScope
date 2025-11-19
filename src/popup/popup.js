@@ -6,7 +6,7 @@ const highlighterBtn = document.getElementById('highlightElements');
 // popup listeners
 document.getElementById('mouseFreeze').addEventListener('click', function () {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'}).then();
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'}).then();
     });
 });
 
@@ -15,7 +15,7 @@ highlighterBtn.addEventListener('click', function () {
     const willActivate = !highlighterBtn.classList.contains('active');
     highlighterBtn.classList.toggle('active', willActivate);
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
+        browserAPI.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'highlighter:active' : 'highlighter:deactive'
         }).then();
     });
@@ -26,7 +26,7 @@ distancerBtn.addEventListener('click', function () {
     const willActivate = !distancerBtn.classList.contains('active');
     distancerBtn.classList.toggle('active', willActivate);
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
+        browserAPI.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'distancer:active' : 'distancer:deactive'
         }).then();
     });
@@ -39,8 +39,8 @@ syncDistancerState();
 
 function syncHighlighterState() {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'highlighter:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'highlighter:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 highlighterBtn.classList.remove('active');
                 return;
             }
@@ -51,8 +51,8 @@ function syncHighlighterState() {
 
 function syncDistancerState() {
     browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'distancer:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'distancer:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 distancerBtn.classList.remove('active');
                 return;
             }

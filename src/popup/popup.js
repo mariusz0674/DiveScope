@@ -1,12 +1,12 @@
-
-    // buttons references
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+// buttons references
 const distancerBtn = document.getElementById('distancer');
 const highlighterBtn = document.getElementById('highlightElements');
 
-    // popup listeners
+// popup listeners
 document.getElementById('mouseFreeze').addEventListener('click', function () {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'mouseFreeze:toggle' });
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'}).then();
     });
 });
 
@@ -14,10 +14,10 @@ document.getElementById('mouseFreeze').addEventListener('click', function () {
 highlighterBtn.addEventListener('click', function () {
     const willActivate = !highlighterBtn.classList.contains('active');
     highlighterBtn.classList.toggle('active', willActivate);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'highlighter:active' : 'highlighter:deactive'
-        });
+        }).then();
     });
 });
 
@@ -25,23 +25,22 @@ highlighterBtn.addEventListener('click', function () {
 distancerBtn.addEventListener('click', function () {
     const willActivate = !distancerBtn.classList.contains('active');
     distancerBtn.classList.toggle('active', willActivate);
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {
             action: willActivate ? 'distancer:active' : 'distancer:deactive'
-        });
+        }).then();
     });
 });
 
 
-
-    // Sync status from content script on popup init
+// Sync status from content-script on popup init
 syncHighlighterState();
 syncDistancerState();
 
 function syncHighlighterState() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'highlighter:status' }, function (response) {
-            if (chrome.runtime.lastError || !response) {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'highlighter:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 highlighterBtn.classList.remove('active');
                 return;
             }
@@ -51,9 +50,9 @@ function syncHighlighterState() {
 }
 
 function syncDistancerState() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'distancer:status' }, function (response) {
-            if (chrome.runtime.lastError || !response) {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'distancer:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 distancerBtn.classList.remove('active');
                 return;
             }

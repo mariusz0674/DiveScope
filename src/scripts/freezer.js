@@ -1,4 +1,5 @@
 (() => {
+    const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
     let on = false;
     const offFns = [];
     let banner = null;
@@ -115,7 +116,7 @@
         removeBanner();
     }
 
-    chrome.runtime.onMessage.addListener((req) => {
+    browserAPI.runtime.onMessage.addListener((req) => {
         if (req?.action === 'mouseFreeze:toggle') {
             if (!on) {
                 makeBanner(true);

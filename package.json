@@ -1,0 +1,22 @@
+{
+  "name": "divescope",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start:firefox": "web-ext run --start-url file://${PWD}/src/test/test.html",
+    "start:chrome": "web-ext run -t chromium --start-url file://${PWD}/src/test/chrome-proxy.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mariusz0674/DiveScope.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mariusz0674/DiveScope/issues"
+  },
+  "homepage": "https://github.com/mariusz0674/DiveScope#readme",
+  "devDependencies": {
+    "web-ext": "^9.1.0"
+  }
+}

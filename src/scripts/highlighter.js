@@ -1,4 +1,5 @@
 (() => {
+    const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
     let highlightEnabled = false;
     let tooltipEl = null;
     let highlightedChain = [];
@@ -185,7 +186,7 @@
         tooltipEl.style.top = `${y}px`;
     }
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'highlighter:active') {
             enableHighlighter();
         } else if (request.action === 'highlighter:deactive') {

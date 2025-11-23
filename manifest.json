@@ -17,5 +17,11 @@
         "src/scripts/distancer.js"
       ]
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/popup/popup.html"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }

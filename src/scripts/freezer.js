@@ -4,7 +4,9 @@
     const offFns = [];
     let banner = null;
     let labelEl = null;
+    let frozenStyleEl = null;
     const ENABLE_DELAY_MS = 2000;
+    const FORCE_HOVER_CLASS = '__force_hover_state__';
 
     const MOUSE_EVENTS = [
         'pointerdown','pointerup','pointermove','pointerenter','pointerleave','pointercancel',
@@ -13,6 +15,60 @@
         'dragstart','drag','dragend','dragenter','dragleave','dragover','drop'
     ];
     const PAGE_EVENTS = ['visibilitychange', 'pagehide', 'blur', 'focusout'];
+
+    function freezeCssStates() {
+        const hoveredElements = document.querySelectorAll(':hover');
+        hoveredElements.forEach(el => {
+            el.classList.add(FORCE_HOVER_CLASS);
+        });
+
+        frozenStyleEl = document.createElement('style');
+        frozenStyleEl.id = '__mouse_freezer_css__';
+        document.head.appendChild(frozenStyleEl);
+
+        const newSheet = frozenStyleEl.sheet;
+
+        try {
+            for (const sheet of document.styleSheets) {
+                if (sheet.ownerNode === frozenStyleEl) {
+                    continue;
+                }
+
+                try {
+                    const rules = sheet.cssRules || sheet.rules;
+                    if (!rules) continue;
+
+                    for (const rule of rules) {
+                        if (rule.selectorText && rule.selectorText.includes(':hover')) {
+                            const newSelector = rule.selectorText.replace(/:hover/g, `.${FORCE_HOVER_CLASS}`);
+                            const newRule = `${newSelector} { ${rule.style.cssText} }`;
+
+                            try {
+                                newSheet.insertRule(newRule, newSheet.cssRules.length);
+                            } catch (e) {
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('MouseFreeze: Cannot read external stylesheet rules due to CORS.', e);
+                }
+            }
+        } catch(e) {
+            console.error('MouseFreeze: Error processing styles', e);
+        }
+    }
+
+    function unfreezeCssStates() {
+        if (frozenStyleEl && frozenStyleEl.parentNode) {
+            frozenStyleEl.parentNode.removeChild(frozenStyleEl);
+        }
+        frozenStyleEl = null;
+
+        const frozenElements = document.querySelectorAll(`.${FORCE_HOVER_CLASS}`);
+        frozenElements.forEach(el => {
+            el.classList.remove(FORCE_HOVER_CLASS);
+        });
+    }
 
     function addCapture(type, handler) {
         window.addEventListener(type, handler, { capture: true, passive: false });
@@ -26,39 +82,40 @@
     }
 
     function makeBanner(waiting = false) {
-        if (banner) {
-            return banner;
-        }
+        if (banner) return banner;
+
         banner = document.createElement('div');
         banner.id = '__mouse_freezer_banner__';
         Object.assign(banner.style, {
-            position: 'fixed',
-            left: '8px',
-            top: '8px',
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            padding: '6px 8px',
-            background: 'rgba(0,0,0,0.75)',
-            color: '#fff',
-            borderRadius: '8px',
-            fontFamily: 'system-ui, Arial, sans-serif',
-            fontSize: '12px',
-            zIndex: '2147483647',
-            boxShadow: '0 2px 10px rgba(0,0,0,.3)',
+            position: 'fixed', left: '8px', top: '8px',
+            display: 'flex', gap: '8px', alignItems: 'center',
+            padding: '6px 8px', background: 'rgba(0,0,0,0.85)',
+            color: '#fff', borderRadius: '8px',
+            fontFamily: 'system-ui, Arial, sans-serif', fontSize: '12px',
+            zIndex: '2147483647', boxShadow: '0 4px 12px rgba(0,0,0,.4)',
             pointerEvents: 'auto'
         });
+
         const dot = document.createElement('span');
         Object.assign(dot.style, { width: '8px', height: '8px', borderRadius: '50%', background: '#ff4d4d', display: 'inline-block' });
-        labelEl = document.createElement('span');                         // <—
-        labelEl.textContent = 'Mouse Freeze: ' + (waiting ? 'waiting' : (on ? 'ON' : 'OFF'));
+
+        labelEl = document.createElement('span');
+        labelEl.textContent = 'Freeze: ' + (waiting ? 'Wait...' : (on ? 'ON' : 'OFF'));
+
         const btn = document.createElement('button');
         btn.textContent = 'Unfreeze';
         Object.assign(btn.style, {
-            border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer',
-            background: '#fff', color: '#000', fontSize: '12px'
+            border: 'none', borderRadius: '4px', padding: '4px 10px',
+            cursor: 'pointer', background: '#fff', color: '#000',
+            fontSize: '11px', fontWeight: 'bold'
         });
-        btn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); disable(); });
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            disable();
+        });
+
         banner.append(dot, labelEl, btn);
         document.documentElement.appendChild(banner);
         return banner;
@@ -79,6 +136,7 @@
     function blockMouse(e) {
         const t = e.composedPath ? e.composedPath()[0] : e.target;
         if (isInsideBanner(t)) return;
+
         try { e.preventDefault(); } catch {}
         try { e.stopImmediatePropagation(); } catch {}
         try { e.stopPropagation(); } catch {}
@@ -91,28 +149,26 @@
     }
 
     function enable() {
-        if (on) {
-            return;
-        }
-        on = true;
+        if (on) return;
 
+        freezeCssStates();
+
+        on = true;
         MOUSE_EVENTS.forEach(ev => addCapture(ev, blockMouse));
         PAGE_EVENTS.forEach(ev => addCapture(ev, blockPageEvent));
 
-        if (!banner) {
-            makeBanner(false);
-        }
-        if (labelEl) {
-            labelEl.textContent = 'Mouse Freeze: ON';
-        }
+        if (!banner) makeBanner(false);
+        if (labelEl) labelEl.textContent = 'Freeze: ON';
     }
 
     function disable() {
-        if (!on && !banner) {
-            return;
-        }
+        if (!on && !banner) return;
+
         on = false;
         while (offFns.length) offFns.pop()();
+
+        unfreezeCssStates();
+
         removeBanner();
     }
 
@@ -124,11 +180,6 @@
             } else {
                 disable();
             }
-        } else if (req?.action === 'mouseFreeze:on') {
-            makeBanner(true);
-            setTimeout(enable, ENABLE_DELAY_MS);
-        } else if (req?.action === 'mouseFreeze:off') {
-            disable();
         }
     });
 })();

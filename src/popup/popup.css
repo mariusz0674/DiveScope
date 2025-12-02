@@ -154,3 +154,77 @@ h1::after {
     padding-left: 24px;
 }
 
+.expanded-section {
+    display: none;
+    padding: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: -4px;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.expanded-section.visible {
+    display: flex;
+}
+
+.btn-secondary {
+    font-size: 12px;
+    padding: 7px 9px;
+}
+
+.snap-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.snap-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.snap-group > label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.snap-options {
+    display: flex;
+    gap: 8px;
+}
+
+.snap-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--btn-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s ease;
+}
+
+.snap-option:hover {
+    background: var(--btn-bg-hover);
+    border-color: #354062;
+}
+
+.snap-option input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.snap-option input[type="radio"]:checked + span {
+    color: var(--accent);
+    font-weight: 600;
+}

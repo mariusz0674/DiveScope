@@ -1,11 +1,17 @@
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-// buttons references
+
 const distancerBtn = document.getElementById('distancer');
 const highlighterBtn = document.getElementById('highlightElements');
+const guidelinesBtn = document.getElementById('guidelines');
+const guidelinesExpanded = document.getElementById('guidelinesExpanded');
+const crosshairBtn = document.getElementById('crosshair');
+const snapHorizontalInputs = document.getElementsByName('snapHorizontal');
+const snapVerticalInputs = document.getElementsByName('snapVertical');
 const freezerBtn = document.getElementById('mouseFreeze');
 const pinButton = document.getElementById('pinButton');
 
 const isPinned = new URLSearchParams(window.location.search).get('pinned') === 'true';
+
 
 if (isPinned) {
     pinButton.textContent = '✖';
@@ -75,6 +81,7 @@ highlighterBtn.addEventListener('click', function () {
     });
 });
 
+
 distancerBtn.addEventListener('click', function () {
     getTargetTab(function(tab) {
         if (!tab) return;
@@ -91,6 +98,8 @@ distancerBtn.addEventListener('click', function () {
 syncHighlighterState();
 syncDistancerState();
 syncFreezerState();
+syncGuidelinesState();
+syncCrosshairState();
 
 function syncHighlighterState() {
     getTargetTab(function(tab) {
@@ -139,6 +148,32 @@ function syncFreezerState() {
                 return;
             }
             freezerBtn.classList.toggle('active', !!response.active);
+        });
+    });
+}
+
+function syncGuidelinesState() {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: 'guidelines:status'}, function (response) {
+            if (chrome.runtime.lastError || !response) {
+                guidelinesBtn.classList.remove('active');
+                guidelinesExpanded.classList.remove('visible');
+                return;
+            }
+            guidelinesBtn.classList.toggle('active', !!response.active);
+            guidelinesExpanded.classList.toggle('visible', !!response.active);
+        });
+    });
+}
+
+function syncCrosshairState() {
+    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: 'crosshair:status'}, function (response) {
+            if (chrome.runtime.lastError || !response) {
+                crosshairBtn.classList.remove('active');
+                return;
+            }
+            crosshairBtn.classList.toggle('active', !!response.active);
         });
     });
 }

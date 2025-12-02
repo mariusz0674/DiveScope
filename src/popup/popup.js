@@ -101,11 +101,9 @@ guidelinesBtn.addEventListener('click', function () {
         guidelinesBtn.classList.toggle('active', willActivate);
         guidelinesExpanded.classList.toggle('visible', willActivate);
 
-        browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            chrome.tabs.sendMessage(tab.id, {
-                action: willActivate ? 'guidelines:active' : 'guidelines:deactive'
-            }).then();
-        });
+        browserAPI.tabs.sendMessage(tab.id, {
+            action: willActivate ? 'guidelines:active' : 'guidelines:deactive'
+        }).then();
     });
 });
 
@@ -119,13 +117,11 @@ crosshairBtn.addEventListener('click', function () {
         const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
         const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
 
-        browserAPI.tabs.query({active: true, currentWindow: true}, function (tab) {
-            chrome.tabs.sendMessage(tab.id, {
-                action: willActivate ? 'crosshair:active' : 'crosshair:deactive',
-                snapHorizontal,
-                snapVertical
-            }).then();
-        });
+        browserAPI.tabs.sendMessage(tab.id, {
+            action: willActivate ? 'crosshair:active' : 'crosshair:deactive',
+            snapHorizontal,
+            snapVertical
+        }).then();
     });
 });
 
@@ -137,22 +133,17 @@ Array.from(snapHorizontalInputs).forEach(input => {
             if (crosshairBtn.classList.contains('active')) {
                 const snapHorizontal = this.value;
                 const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
-
-                browserAPI.tabs.query({active: true, currentWindow: true}, function (tab) {
-                    chrome.tabs.sendMessage(tab.id, {
-                        action: 'crosshair:updateSnap',
-                        snapHorizontal,
-                        snapVertical
-                    }).then();
-                });
+                browserAPI.tabs.sendMessage(tab.id, {
+                    action: 'crosshair:updateSnap',
+                    snapHorizontal,
+                    snapVertical
+                }).then();
             }
         });
     });
 });
 
 Array.from(snapVerticalInputs).forEach(input => {
-
-
     getTargetTab(function (tab) {
         if (!tab) return;
 
@@ -160,14 +151,11 @@ Array.from(snapVerticalInputs).forEach(input => {
             if (crosshairBtn.classList.contains('active')) {
                 const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
                 const snapVertical = this.value;
-
-                browserAPI.tabs.query({active: true, currentWindow: true}, function (tab) {
-                    chrome.tabs.sendMessage(tab.id, {
-                        action: 'crosshair:updateSnap',
-                        snapHorizontal,
-                        snapVertical
-                    }).then();
-                });
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'crosshair:updateSnap',
+                    snapHorizontal,
+                    snapVertical
+                }).then();
             }
         });
     });
@@ -233,9 +221,12 @@ function syncFreezerState() {
 }
 
 function syncGuidelinesState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'guidelines:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
+    getTargetTab(function (tab) {
+        if (!tab) {
+            return;
+        }
+        browserAPI.tabs.sendMessage(tab.id, {action: 'guidelines:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 guidelinesBtn.classList.remove('active');
                 guidelinesExpanded.classList.remove('visible');
                 return;
@@ -247,9 +238,12 @@ function syncGuidelinesState() {
 }
 
 function syncCrosshairState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'crosshair:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
+    getTargetTab(function (tab) {
+        if (!tab) {
+            return;
+        }
+        browserAPI.tabs.sendMessage(tab.id, {action: 'crosshair:status'}, function (response) {
+            if (browserAPI.runtime.lastError || !response) {
                 crosshairBtn.classList.remove('active');
                 return;
             }

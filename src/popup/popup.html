@@ -14,6 +14,38 @@
     <div class="actions">
         <button id="highlightElements" class="btn">Rysowanie granic</button>
         <button id="distancer" class="btn">Pomiar odległości</button>
+        <button id="guidelines" class="btn">Tryb linijki</button>
+        <div id="guidelinesExpanded" class="expanded-section">
+            <button id="crosshair" class="btn btn-secondary">🎯 Celownik</button>
+            <div class="snap-settings">
+                <div class="snap-group">
+                    <label>Poziomo:</label>
+                    <div class="snap-options">
+                        <label class="snap-option">
+                            <input type="radio" name="snapHorizontal" value="left" checked>
+                            <span>Left</span>
+                        </label>
+                        <label class="snap-option">
+                            <input type="radio" name="snapHorizontal" value="right">
+                            <span>Right</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="snap-group">
+                    <label>Pionowo:</label>
+                    <div class="snap-options">
+                        <label class="snap-option">
+                            <input type="radio" name="snapVertical" value="top" checked>
+                            <span>Top</span>
+                        </label>
+                        <label class="snap-option">
+                            <input type="radio" name="snapVertical" value="bottom">
+                            <span>Bottom</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
         <button id="mouseFreeze" class="btn">Debugger freeze (1s)</button>
     </div>
 </div>

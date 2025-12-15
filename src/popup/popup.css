@@ -7,52 +7,73 @@
     --btn-bg: #171d2b;
     --btn-bg-hover: #1f2636;
     --accent: #3fb950;
+    --accent-blue: #1f6feb;
     --accent-soft: rgba(63, 185, 80, .18);
     --radius: 14px;
+    --radius-sm: 10px;
+    --transition-fast: 0.15s ease;
+    --transition-medium: 0.25s ease;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, .3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, .45);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, .55);
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
-    padding: 0
+    padding: 0;
 }
 
 body {
     color: var(--text);
-    font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
     min-width: 260px;
-    background: #10131b;
+    background: var(--panel);
     border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    box-shadow: var(--shadow-lg);
     padding: 14px 14px 16px;
+    position: relative;
 }
 
+/* Pin Button */
 .pin-button {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
+    top: 8px;
+    right: 8px;
+    background: transparent;
     border: none;
     font-size: 18px;
     cursor: pointer;
-    padding: 5px 8px;
+    padding: 6px 10px; /* trochę większy obszar kliknięcia */
     line-height: 1;
-    color: var(--text);
-}
-.pin-button:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
+    color: var(--muted);
+    border-radius: 999px;
+    transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+    z-index: 10; /* nad całym UI */
 }
 
+.pin-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    /* bez scale, żeby nie przesuwać hit-boxa */
+}
+
+.pin-button:active {
+    transform: scale(0.96);
+}
+
+/* Header */
 h1 {
+    position: relative;
     margin: 0 0 6px;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    background: linear-gradient(120deg, #1f6feb, #3fb950, #1f6feb);
+    background: linear-gradient(120deg, var(--accent-blue), var(--accent), var(--accent-blue));
     background-size: 200% 200%;
     -webkit-background-clip: text;
+    background-clip: text;
     color: transparent;
     animation: titleGradient 4s ease-in-out infinite;
 }
@@ -68,55 +89,59 @@ h1::after {
     filter: blur(16px);
     opacity: .4;
     z-index: -1;
+    animation: titleGradient 4s ease-in-out infinite;
 }
 
 @keyframes titleGradient {
-    0% {
-        background-position: 0 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0 50%;
-    }
+    0%, 100% { background-position: 0 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 .subtitle {
     font-size: 12px;
     color: var(--muted);
+    opacity: 0.8;
+    transition: opacity var(--transition-fast);
 }
 
+.subtitle:hover {
+    opacity: 1;
+}
+
+/* Actions Grid */
 .actions {
     display: grid;
     gap: 8px;
     margin-top: 12px;
 }
 
+/* Buttons */
 .btn {
     appearance: none;
     border: 1px solid var(--border);
     background: var(--btn-bg);
     color: var(--text);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     padding: 9px 11px;
     cursor: pointer;
     text-align: left;
     font-size: 13px;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    transition: background .15s ease,
-    border-color .15s ease,
-    transform .05s ease,
-    box-shadow .15s ease;
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        transform 0.05s ease,
+        box-shadow var(--transition-fast);
 }
 
 .btn:hover {
     background: var(--btn-bg-hover);
     border-color: #354062;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
+    box-shadow: var(--shadow-md);
 }
 
 .btn:active {
@@ -124,16 +149,20 @@ h1::after {
 }
 
 .btn:focus-visible {
-    outline: 2px solid #6ea8fe;
+    outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
 }
 
+/* Active Button State */
 .btn.active {
-    background: linear-gradient(135deg, #1f6feb, #238636);
+    background: linear-gradient(135deg, var(--accent-blue), #238636);
     border-color: var(--accent);
     color: #f7fafd;
-    box-shadow: 0 0 0 1px rgba(63, 185, 80, .5),
-    0 0 0 4px var(--accent-soft);
+    box-shadow:
+        0 0 0 1px rgba(63, 185, 80, .5),
+        0 0 0 4px var(--accent-soft),
+        var(--shadow-sm);
+    padding-left: 24px;
     position: relative;
 }
 
@@ -145,28 +174,50 @@ h1::after {
     transform: translateY(-50%);
     width: 7px;
     height: 7px;
-    border-radius: 999px;
+    border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 8px rgba(63, 185, 80, .9);
+    animation: pulse 2s ease-in-out infinite;
 }
 
-.btn.active {
-    padding-left: 24px;
+@keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(63, 185, 80, .9); }
+    50% { opacity: 0.7; box-shadow: 0 0 12px rgba(63, 185, 80, 1); }
 }
 
+.btn.active:hover {
+    filter: brightness(1.1);
+}
+
+/* Expanded Section */
 .expanded-section {
-    display: none;
-    padding: 8px;
+    display: grid;
+    grid-template-rows: 0fr;
+    padding: 0;
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
     margin-top: -4px;
-    gap: 8px;
+    gap: 0;
+    overflow: hidden;
+    transition:
+        grid-template-rows var(--transition-medium),
+        padding var(--transition-medium),
+        border-color var(--transition-medium),
+        gap var(--transition-medium);
+}
+
+.expanded-content {
+    min-height: 0;
+    display: flex;
     flex-direction: column;
+    gap: 8px;
 }
 
 .expanded-section.visible {
-    display: flex;
+    grid-template-rows: 1fr;
+    padding: 8px;
+    border-color: var(--border);
 }
 
 .btn-secondary {
@@ -174,6 +225,7 @@ h1::after {
     padding: 7px 9px;
 }
 
+/* Snap Settings */
 .snap-settings {
     display: flex;
     flex-direction: column;
@@ -194,6 +246,7 @@ h1::after {
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-weight: 600;
 }
 
 .snap-options {
@@ -211,7 +264,7 @@ h1::after {
     border-radius: 6px;
     cursor: pointer;
     font-size: 11px;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
 }
 
 .snap-option:hover {
@@ -222,9 +275,29 @@ h1::after {
 .snap-option input[type="radio"] {
     margin: 0;
     cursor: pointer;
+    accent-color: var(--accent);
 }
 
 .snap-option input[type="radio"]:checked + span {
     color: var(--accent);
     font-weight: 600;
+}
+
+/* Custom scrollbar (if needed) */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
 }

@@ -1,26 +1,86 @@
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
-const distancerBtn = document.getElementById('distancer');
-const highlighterBtn = document.getElementById('highlightElements');
-const guidelinesBtn = document.getElementById('guidelines');
-const guidelinesExpanded = document.getElementById('guidelinesExpanded');
-const crosshairBtn = document.getElementById('crosshair');
-const snapHorizontalInputs = document.getElementsByName('snapHorizontal');
-const snapVerticalInputs = document.getElementsByName('snapVertical');
-const freezerBtn = document.getElementById('mouseFreeze');
-const pinButton = document.getElementById('pinButton');
+// DOM Elements
+const elements = {
+    distancer: document.getElementById('distancer'),
+    highlighter: document.getElementById('highlightElements'),
+    guidelines: document.getElementById('guidelines'),
+    guidelinesExpanded: document.getElementById('guidelinesExpanded'),
+    crosshair: document.getElementById('crosshair'),
+    snapHorizontal: document.getElementsByName('snapHorizontal'),
+    snapVertical: document.getElementsByName('snapVertical'),
+    freezer: document.getElementById('mouseFreeze'),
+    pin: document.getElementById('pinButton')
+};
 
+// State
 const isPinned = new URLSearchParams(window.location.search).get('pinned') === 'true';
 
-if (isPinned) {
-    pinButton.textContent = '✖';
-    pinButton.title = 'Zamknij';
-} else {
-    pinButton.textContent = '🗗';
-    pinButton.title = 'Przypnij';
+// Pin button setup
+elements.pin.textContent = isPinned ? '✖' : '🗗';
+elements.pin.title = isPinned ? 'Zamknij' : 'Przypnij';
+
+// Helper functions
+function getTargetTab() {
+    return new Promise((resolve) => {
+        if (isPinned) {
+            browserAPI.windows.getAll({ populate: true, windowTypes: ['normal'] }, (windows) => {
+                for (const win of windows) {
+                    const activeTab = win.tabs.find(tab => tab.active);
+                    if (activeTab) return resolve(activeTab);
+                }
+                resolve(null);
+            });
+        } else {
+            browserAPI.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                resolve(tabs[0] || null);
+            });
+        }
+    });
 }
 
-pinButton.addEventListener('click', function () {
+function sendMessage(tabId, message) {
+    return browserAPI.tabs.sendMessage(tabId, message).catch(() => {});
+}
+
+function getSnapValues() {
+    return {
+        snapHorizontal: Array.from(elements.snapHorizontal).find(i => i.checked)?.value || 'left',
+        snapVertical: Array.from(elements.snapVertical).find(i => i.checked)?.value || 'top'
+    };
+}
+
+async function toggleFeature(button, actionPrefix, extraData = {}) {
+    const tab = await getTargetTab();
+    if (!tab) return;
+
+    const willActivate = !button.classList.contains('active');
+    button.classList.toggle('active', willActivate);
+
+    const action = willActivate ? `${actionPrefix}:active` : `${actionPrefix}:deactive`;
+    await sendMessage(tab.id, { action, ...extraData });
+}
+
+async function syncFeatureState(button, actionPrefix, onSync = null) {
+    const tab = await getTargetTab();
+    if (!tab) {
+        button.classList.remove('active');
+        return;
+    }
+
+    browserAPI.tabs.sendMessage(tab.id, { action: `${actionPrefix}:status` }, (response) => {
+        if (browserAPI.runtime.lastError || !response) {
+            button.classList.remove('active');
+            onSync?.(false);
+            return;
+        }
+        button.classList.toggle('active', !!response.active);
+        onSync?.(!!response.active);
+    });
+}
+
+// Event Listeners
+elements.pin.addEventListener('click', () => {
     if (isPinned) {
         window.close();
     } else {
@@ -28,226 +88,66 @@ pinButton.addEventListener('click', function () {
             url: browserAPI.runtime.getURL('src/popup/popup.html?pinned=true'),
             type: 'popup',
             width: 300,
-            height: 280,
+            height: 350,
             focused: true
         });
         window.close();
     }
 });
 
-// Helper: get target tab (active in current window or last focused tab)
-function getTargetTab(callback) {
-    if (isPinned) {
-        // When pinned, get the active tab from the last focused normal window
-        browserAPI.windows.getAll({populate: true, windowTypes: ['normal']}, function (windows) {
-            for (const win of windows) {
-                const activeTab = win.tabs.find(tab => tab.active);
-                if (activeTab) {
-                    callback(activeTab);
-                    return;
-                }
-            }
-            callback(null);
-        });
-    } else {
-        // Normal popup: get active tab in current window
-        browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            callback(tabs[0] || null);
-        });
-    }
-}
+elements.freezer.addEventListener('click', async () => {
+    const tab = await getTargetTab();
+    if (!tab) return;
 
-// popup listeners
-freezerBtn.addEventListener('click', function () {
-    getTargetTab(function (tab) {
-        if (!tab) return;
-
-        const willActivate = !freezerBtn.classList.contains('active');
-        freezerBtn.classList.toggle('active', willActivate);
-        browserAPI.tabs.sendMessage(tab.id, {action: 'mouseFreeze:toggle'}).then();
-    });
+    elements.freezer.classList.toggle('active');
+    await sendMessage(tab.id, { action: 'mouseFreeze:toggle' });
 });
 
-highlighterBtn.addEventListener('click', function () {
-    getTargetTab(function (tab) {
-        if (!tab) return;
-
-        const willActivate = !highlighterBtn.classList.contains('active');
-        highlighterBtn.classList.toggle('active', willActivate);
-        browserAPI.tabs.sendMessage(tab.id, {
-            action: willActivate ? 'highlighter:active' : 'highlighter:deactive'
-        }).then();
-    });
+elements.highlighter.addEventListener('click', () => {
+    toggleFeature(elements.highlighter, 'highlighter');
 });
 
-
-distancerBtn.addEventListener('click', function () {
-    getTargetTab(function (tab) {
-        if (!tab) return;
-
-        const willActivate = !distancerBtn.classList.contains('active');
-        distancerBtn.classList.toggle('active', willActivate);
-        browserAPI.tabs.sendMessage(tab.id, {
-            action: willActivate ? 'distancer:active' : 'distancer:deactive'
-        }).then();
-    });
+elements.distancer.addEventListener('click', () => {
+    toggleFeature(elements.distancer, 'distancer');
 });
 
-guidelinesBtn.addEventListener('click', function () {
-    getTargetTab(function (tab) {
-        if (!tab) return;
+elements.guidelines.addEventListener('click', async () => {
+    const tab = await getTargetTab();
+    if (!tab) return;
 
-        const willActivate = !guidelinesBtn.classList.contains('active');
-        guidelinesBtn.classList.toggle('active', willActivate);
-        guidelinesExpanded.classList.toggle('visible', willActivate);
+    const willActivate = !elements.guidelines.classList.contains('active');
+    elements.guidelines.classList.toggle('active', willActivate);
+    elements.guidelinesExpanded.classList.toggle('visible', willActivate);
 
-        browserAPI.tabs.sendMessage(tab.id, {
-            action: willActivate ? 'guidelines:active' : 'guidelines:deactive'
-        }).then();
-    });
+    const action = willActivate ? 'guidelines:active' : 'guidelines:deactive';
+    await sendMessage(tab.id, { action });
 });
 
-crosshairBtn.addEventListener('click', function () {
-    getTargetTab(function (tab) {
-        if (!tab) return;
-
-        const willActivate = !crosshairBtn.classList.contains('active');
-        crosshairBtn.classList.toggle('active', willActivate);
-
-        const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
-        const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
-
-        browserAPI.tabs.sendMessage(tab.id, {
-            action: willActivate ? 'crosshair:active' : 'crosshair:deactive',
-            snapHorizontal,
-            snapVertical
-        }).then();
-    });
+elements.crosshair.addEventListener('click', () => {
+    toggleFeature(elements.crosshair, 'crosshair', getSnapValues());
 });
 
-Array.from(snapHorizontalInputs).forEach(input => {
-    getTargetTab(function (tab) {
-        if (!tab) return;
+// Snap settings listeners
+const handleSnapChange = async () => {
+    if (!elements.crosshair.classList.contains('active')) return;
 
-        input.addEventListener('change', function () {
-            if (crosshairBtn.classList.contains('active')) {
-                const snapHorizontal = this.value;
-                const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
-                browserAPI.tabs.sendMessage(tab.id, {
-                    action: 'crosshair:updateSnap',
-                    snapHorizontal,
-                    snapVertical
-                }).then();
-            }
-        });
-    });
+    const tab = await getTargetTab();
+    if (!tab) return;
+
+    await sendMessage(tab.id, { action: 'crosshair:updateSnap', ...getSnapValues() });
+};
+
+[...elements.snapHorizontal, ...elements.snapVertical].forEach(input => {
+    input.addEventListener('change', handleSnapChange);
 });
 
-Array.from(snapVerticalInputs).forEach(input => {
-    getTargetTab(function (tab) {
-        if (!tab) return;
-
-        input.addEventListener('change', function () {
-            if (crosshairBtn.classList.contains('active')) {
-                const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
-                const snapVertical = this.value;
-                chrome.tabs.sendMessage(tab.id, {
-                    action: 'crosshair:updateSnap',
-                    snapHorizontal,
-                    snapVertical
-                }).then();
-            }
-        });
+// Initialize state sync
+(async function initSync() {
+    syncFeatureState(elements.highlighter, 'highlighter');
+    syncFeatureState(elements.distancer, 'distancer');
+    syncFeatureState(elements.freezer, 'mouseFreeze');
+    syncFeatureState(elements.crosshair, 'crosshair');
+    syncFeatureState(elements.guidelines, 'guidelines', (active) => {
+        elements.guidelinesExpanded.classList.toggle('visible', active);
     });
-});
-
-
-// Sync status from content-script on popup init
-syncHighlighterState();
-syncDistancerState();
-syncFreezerState();
-syncGuidelinesState();
-syncCrosshairState();
-
-function syncHighlighterState() {
-    getTargetTab(function (tab) {
-        if (!tab) {
-            highlighterBtn.classList.remove('active');
-            return;
-        }
-
-        browserAPI.tabs.sendMessage(tab.id, {action: 'highlighter:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                highlighterBtn.classList.remove('active');
-                return;
-            }
-            highlighterBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
-
-function syncDistancerState() {
-    getTargetTab(function (tab) {
-        if (!tab) {
-            distancerBtn.classList.remove('active');
-            return;
-        }
-
-        browserAPI.tabs.sendMessage(tab.id, {action: 'distancer:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                distancerBtn.classList.remove('active');
-                return;
-            }
-            distancerBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
-
-function syncFreezerState() {
-    getTargetTab(function (tab) {
-        if (!tab) {
-            freezerBtn.classList.remove('active');
-            return;
-        }
-
-        browserAPI.tabs.sendMessage(tab.id, {action: 'mouseFreeze:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                freezerBtn.classList.remove('active');
-                return;
-            }
-            freezerBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
-
-function syncGuidelinesState() {
-    getTargetTab(function (tab) {
-        if (!tab) {
-            return;
-        }
-        browserAPI.tabs.sendMessage(tab.id, {action: 'guidelines:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                guidelinesBtn.classList.remove('active');
-                guidelinesExpanded.classList.remove('visible');
-                return;
-            }
-            guidelinesBtn.classList.toggle('active', !!response.active);
-            guidelinesExpanded.classList.toggle('visible', !!response.active);
-        });
-    });
-}
-
-function syncCrosshairState() {
-    getTargetTab(function (tab) {
-        if (!tab) {
-            return;
-        }
-        browserAPI.tabs.sendMessage(tab.id, {action: 'crosshair:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                crosshairBtn.classList.remove('active');
-                return;
-            }
-            crosshairBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
+})();

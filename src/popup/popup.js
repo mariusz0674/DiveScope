@@ -61,21 +61,24 @@ async function toggleFeature(button, actionPrefix, extraData = {}) {
     await sendMessage(tab.id, { action, ...extraData });
 }
 
-async function syncFeatureState(button, actionPrefix, onSync = null) {
-    const tab = await getTargetTab();
-    if (!tab) {
-        button.classList.remove('active');
-        return;
-    }
-
-    browserAPI.tabs.sendMessage(tab.id, { action: `${actionPrefix}:status` }, (response) => {
-        if (browserAPI.runtime.lastError || !response) {
+function syncFeatureState(button, actionPrefix, onSync = null) {
+    getTargetTab().then((tab) => {
+        if (!tab) {
             button.classList.remove('active');
             onSync?.(false);
             return;
         }
-        button.classList.toggle('active', !!response.active);
-        onSync?.(!!response.active);
+
+        browserAPI.tabs.sendMessage(tab.id, { action: `${actionPrefix}:status` }, (response) => {
+            if (browserAPI.runtime.lastError || !response) {
+                button.classList.remove('active');
+                onSync?.(false);
+                return;
+            }
+            const active = !!response.active;
+            button.classList.toggle('active', active);
+            onSync?.(active);
+        });
     });
 }
 
@@ -88,7 +91,7 @@ elements.pin.addEventListener('click', () => {
             url: browserAPI.runtime.getURL('src/popup/popup.html?pinned=true'),
             type: 'popup',
             width: 300,
-            height: 350,
+            height: 400,
             focused: true
         });
         window.close();
@@ -104,11 +107,11 @@ elements.freezer.addEventListener('click', async () => {
 });
 
 elements.highlighter.addEventListener('click', () => {
-    toggleFeature(elements.highlighter, 'highlighter');
+    void toggleFeature(elements.highlighter, 'highlighter');
 });
 
 elements.distancer.addEventListener('click', () => {
-    toggleFeature(elements.distancer, 'distancer');
+    void toggleFeature(elements.distancer, 'distancer');
 });
 
 elements.guidelines.addEventListener('click', async () => {
@@ -124,7 +127,7 @@ elements.guidelines.addEventListener('click', async () => {
 });
 
 elements.crosshair.addEventListener('click', () => {
-    toggleFeature(elements.crosshair, 'crosshair', getSnapValues());
+    void toggleFeature(elements.crosshair, 'crosshair', getSnapValues());
 });
 
 // Snap settings listeners
@@ -142,7 +145,7 @@ const handleSnapChange = async () => {
 });
 
 // Initialize state sync
-(async function initSync() {
+(function initSync() {
     syncFeatureState(elements.highlighter, 'highlighter');
     syncFeatureState(elements.distancer, 'distancer');
     syncFeatureState(elements.freezer, 'mouseFreeze');

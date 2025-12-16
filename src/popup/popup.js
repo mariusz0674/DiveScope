@@ -1,158 +1,156 @@
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
-const distancerBtn = document.getElementById('distancer');
-const highlighterBtn = document.getElementById('highlightElements');
-const guidelinesBtn = document.getElementById('guidelines');
-const guidelinesExpanded = document.getElementById('guidelinesExpanded');
-const crosshairBtn = document.getElementById('crosshair');
-const snapHorizontalInputs = document.getElementsByName('snapHorizontal');
-const snapVerticalInputs = document.getElementsByName('snapVertical');
+// DOM Elements
+const elements = {
+    distancer: document.getElementById('distancer'),
+    highlighter: document.getElementById('highlightElements'),
+    guidelines: document.getElementById('guidelines'),
+    guidelinesExpanded: document.getElementById('guidelinesExpanded'),
+    crosshair: document.getElementById('crosshair'),
+    snapHorizontal: document.getElementsByName('snapHorizontal'),
+    snapVertical: document.getElementsByName('snapVertical'),
+    freezer: document.getElementById('mouseFreeze'),
+    pin: document.getElementById('pinButton')
+};
 
+// State
+const isPinned = new URLSearchParams(window.location.search).get('pinned') === 'true';
 
-// popup listeners
-document.getElementById('mouseFreeze').addEventListener('click', function () {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'mouseFreeze:toggle'}).then();
-    });
-});
+// Pin button setup
+elements.pin.textContent = isPinned ? '✖' : '🗗';
+elements.pin.title = isPinned ? 'Zamknij' : 'Przypnij';
 
-
-highlighterBtn.addEventListener('click', function () {
-    const willActivate = !highlighterBtn.classList.contains('active');
-    highlighterBtn.classList.toggle('active', willActivate);
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        browserAPI.tabs.sendMessage(tabs[0].id, {
-            action: willActivate ? 'highlighter:active' : 'highlighter:deactive'
-        }).then();
-    });
-});
-
-
-distancerBtn.addEventListener('click', function () {
-    const willActivate = !distancerBtn.classList.contains('active');
-    distancerBtn.classList.toggle('active', willActivate);
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        browserAPI.tabs.sendMessage(tabs[0].id, {
-            action: willActivate ? 'distancer:active' : 'distancer:deactive'
-        }).then();
-    });
-});
-
-guidelinesBtn.addEventListener('click', function () {
-    const willActivate = !guidelinesBtn.classList.contains('active');
-    guidelinesBtn.classList.toggle('active', willActivate);
-    guidelinesExpanded.classList.toggle('visible', willActivate);
-
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-            action: willActivate ? 'guidelines:active' : 'guidelines:deactive'
-        }).then();
-    });
-});
-
-crosshairBtn.addEventListener('click', function () {
-    const willActivate = !crosshairBtn.classList.contains('active');
-    crosshairBtn.classList.toggle('active', willActivate);
-
-    const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
-    const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
-
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-            action: willActivate ? 'crosshair:active' : 'crosshair:deactive',
-            snapHorizontal,
-            snapVertical
-        }).then();
-    });
-});
-
-Array.from(snapHorizontalInputs).forEach(input => {
-    input.addEventListener('change', function () {
-        if (crosshairBtn.classList.contains('active')) {
-            const snapHorizontal = this.value;
-            const snapVertical = Array.from(snapVerticalInputs).find(input => input.checked)?.value || 'top';
-
-            browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, {
-                    action: 'crosshair:updateSnap',
-                    snapHorizontal,
-                    snapVertical
-                }).then();
+// Helper functions
+function getTargetTab() {
+    return new Promise((resolve) => {
+        if (isPinned) {
+            browserAPI.windows.getAll({ populate: true, windowTypes: ['normal'] }, (windows) => {
+                for (const win of windows) {
+                    const activeTab = win.tabs.find(tab => tab.active);
+                    if (activeTab) return resolve(activeTab);
+                }
+                resolve(null);
+            });
+        } else {
+            browserAPI.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                resolve(tabs[0] || null);
             });
         }
     });
-});
+}
 
-Array.from(snapVerticalInputs).forEach(input => {
-    input.addEventListener('change', function () {
-        if (crosshairBtn.classList.contains('active')) {
-            const snapHorizontal = Array.from(snapHorizontalInputs).find(input => input.checked)?.value || 'left';
-            const snapVertical = this.value;
+function sendMessage(tabId, message) {
+    return browserAPI.tabs.sendMessage(tabId, message).catch(() => {});
+}
 
-            browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-                chrome.tabs.sendMessage(tabs[0].id, {
-                    action: 'crosshair:updateSnap',
-                    snapHorizontal,
-                    snapVertical
-                }).then();
-            });
+function getSnapValues() {
+    return {
+        snapHorizontal: Array.from(elements.snapHorizontal).find(i => i.checked)?.value || 'left',
+        snapVertical: Array.from(elements.snapVertical).find(i => i.checked)?.value || 'top'
+    };
+}
+
+async function toggleFeature(button, actionPrefix, extraData = {}) {
+    const tab = await getTargetTab();
+    if (!tab) return;
+
+    const willActivate = !button.classList.contains('active');
+    button.classList.toggle('active', willActivate);
+
+    const action = willActivate ? `${actionPrefix}:active` : `${actionPrefix}:deactive`;
+    await sendMessage(tab.id, { action, ...extraData });
+}
+
+function syncFeatureState(button, actionPrefix, onSync = null) {
+    getTargetTab().then((tab) => {
+        if (!tab) {
+            button.classList.remove('active');
+            onSync?.(false);
+            return;
         }
+
+        browserAPI.tabs.sendMessage(tab.id, { action: `${actionPrefix}:status` }, (response) => {
+            if (browserAPI.runtime.lastError || !response) {
+                button.classList.remove('active');
+                onSync?.(false);
+                return;
+            }
+            const active = !!response.active;
+            button.classList.toggle('active', active);
+            onSync?.(active);
+        });
     });
+}
+
+// Event Listeners
+elements.pin.addEventListener('click', () => {
+    if (isPinned) {
+        window.close();
+    } else {
+        browserAPI.windows.create({
+            url: browserAPI.runtime.getURL('src/popup/popup.html?pinned=true'),
+            type: 'popup',
+            width: 300,
+            height: 400,
+            focused: true
+        });
+        window.close();
+    }
 });
 
+elements.freezer.addEventListener('click', async () => {
+    const tab = await getTargetTab();
+    if (!tab) return;
 
-// Sync status from content-script on popup init
-syncHighlighterState();
-syncDistancerState();
-syncGuidelinesState();
-syncCrosshairState();
+    elements.freezer.classList.toggle('active');
+    await sendMessage(tab.id, { action: 'mouseFreeze:toggle' });
+});
 
-function syncHighlighterState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'highlighter:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                highlighterBtn.classList.remove('active');
-                return;
-            }
-            highlighterBtn.classList.toggle('active', !!response.active);
-        });
+elements.highlighter.addEventListener('click', () => {
+    void toggleFeature(elements.highlighter, 'highlighter');
+});
+
+elements.distancer.addEventListener('click', () => {
+    void toggleFeature(elements.distancer, 'distancer');
+});
+
+elements.guidelines.addEventListener('click', async () => {
+    const tab = await getTargetTab();
+    if (!tab) return;
+
+    const willActivate = !elements.guidelines.classList.contains('active');
+    elements.guidelines.classList.toggle('active', willActivate);
+    elements.guidelinesExpanded.classList.toggle('visible', willActivate);
+
+    const action = willActivate ? 'guidelines:active' : 'guidelines:deactive';
+    await sendMessage(tab.id, { action });
+});
+
+elements.crosshair.addEventListener('click', () => {
+    void toggleFeature(elements.crosshair, 'crosshair', getSnapValues());
+});
+
+// Snap settings listeners
+const handleSnapChange = async () => {
+    if (!elements.crosshair.classList.contains('active')) return;
+
+    const tab = await getTargetTab();
+    if (!tab) return;
+
+    await sendMessage(tab.id, { action: 'crosshair:updateSnap', ...getSnapValues() });
+};
+
+[...elements.snapHorizontal, ...elements.snapVertical].forEach(input => {
+    input.addEventListener('change', handleSnapChange);
+});
+
+// Initialize state sync
+(function initSync() {
+    syncFeatureState(elements.highlighter, 'highlighter');
+    syncFeatureState(elements.distancer, 'distancer');
+    syncFeatureState(elements.freezer, 'mouseFreeze');
+    syncFeatureState(elements.crosshair, 'crosshair');
+    syncFeatureState(elements.guidelines, 'guidelines', (active) => {
+        elements.guidelinesExpanded.classList.toggle('visible', active);
     });
-}
-
-function syncDistancerState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        browserAPI.tabs.sendMessage(tabs[0].id, {action: 'distancer:status'}, function (response) {
-            if (browserAPI.runtime.lastError || !response) {
-                distancerBtn.classList.remove('active');
-                return;
-            }
-            distancerBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
-
-function syncGuidelinesState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'guidelines:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
-                guidelinesBtn.classList.remove('active');
-                guidelinesExpanded.classList.remove('visible');
-                return;
-            }
-            guidelinesBtn.classList.toggle('active', !!response.active);
-            guidelinesExpanded.classList.toggle('visible', !!response.active);
-        });
-    });
-}
-
-function syncCrosshairState() {
-    browserAPI.tabs.query({active: true, currentWindow: true}, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'crosshair:status'}, function (response) {
-            if (chrome.runtime.lastError || !response) {
-                crosshairBtn.classList.remove('active');
-                return;
-            }
-            crosshairBtn.classList.toggle('active', !!response.active);
-        });
-    });
-}
+})();

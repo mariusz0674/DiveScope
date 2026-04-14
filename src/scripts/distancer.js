@@ -9,7 +9,13 @@
     let lineXEl = null;
     let lineYEl = null;
     let cursorStyleEl = null;
-    let highlightStyleEl = null;
+
+    const injectedStyles = [];
+
+    // Funkcja pomocnicza przebijająca Shadow DOM
+    function getRealTarget(e) {
+        return (e.composedPath && e.composedPath().length > 0) ? e.composedPath()[0] : e.target;
+    }
 
     function enableMeasurer() {
         if (measureEnabled) {
@@ -17,7 +23,7 @@
         }
         measureEnabled = true;
 
-        injectHighlightStyles();
+        injectStylesForElement(document.documentElement);
         createUI();
         applyCursorOverride();
 
@@ -52,12 +58,20 @@
         document.removeEventListener('keydown', onKeyDown, true);
     }
 
-    function injectHighlightStyles() {
-        if (highlightStyleEl) {
+    // Dynamicznie wstrzykuje style do głównego dokumentu LUB konkretnego ShadowRoot
+    function injectStylesForElement(el) {
+        if (!el) {
             return;
         }
-        highlightStyleEl = document.createElement('style');
-        highlightStyleEl.textContent = `
+        const root = el.getRootNode();
+
+        if (root.querySelector && root.querySelector('.distancer-styles')) {
+            return;
+        }
+
+        const styleEl = document.createElement('style');
+        styleEl.className = 'distancer-styles';
+        styleEl.textContent = `
             .distancer-base {
                 outline: 2px solid #00c853 !important;
                 outline-offset: -1px !important;
@@ -71,14 +85,22 @@
                 outline-offset: -1px !important;
             }
         `;
-        document.head.appendChild(highlightStyleEl);
+
+        if (root === document) {
+            document.head.appendChild(styleEl);
+        } else if (root instanceof ShadowRoot) {
+            root.appendChild(styleEl);
+        }
+        injectedStyles.push(styleEl);
     }
 
     function removeHighlightStyles() {
-        if (highlightStyleEl?.parentNode) {
-            highlightStyleEl.parentNode.removeChild(highlightStyleEl);
-        }
-        highlightStyleEl = null;
+        injectedStyles.forEach(styleEl => {
+            if (styleEl?.parentNode) {
+                styleEl.parentNode.removeChild(styleEl);
+            }
+        });
+        injectedStyles.length = 0;
     }
 
     function createUI() {
@@ -160,12 +182,12 @@
         cursorStyleEl = null;
     }
 
-    // Blokujemy normalne zachowanie kliknięć (buttons, links itd.)
     function swallowEvent(e) {
         if (!measureEnabled) {
             return;
         }
-        if (isUiElement(e.target)) {
+        const target = getRealTarget(e);
+        if (isUiElement(target)) {
             return;
         }
         e.preventDefault();
@@ -177,10 +199,11 @@
         if (!measureEnabled) {
             return;
         }
-        if (!(e.target instanceof Element)) {
+        const target = getRealTarget(e);
+        if (!(target instanceof Element)) {
             return;
         }
-        if (isUiElement(e.target)) {
+        if (isUiElement(target)) {
             return;
         }
 
@@ -188,18 +211,19 @@
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        setBaseElement(e.target);
+        setBaseElement(target);
     }
 
     function onPointerMove(e) {
         if (!measureEnabled) {
             return;
         }
-        if (!(e.target instanceof Element)) {
+        const target = getRealTarget(e);
+        if (!(target instanceof Element)) {
             return;
         }
 
-        const isUi = isUiElement(e.target);
+        const isUi = isUiElement(target);
 
         if (isUi) {
             if (baseElement) {
@@ -209,13 +233,12 @@
         }
 
         if (!baseElement) {
-            setHoverElement(e.target);
+            setHoverElement(target);
             return;
         }
 
         if (!tooltipEl || !lineXEl || !lineYEl) return;
 
-        const target = e.target;
         updateMeasurement(target, e.clientX, e.clientY);
     }
 
@@ -241,6 +264,7 @@
         clearHover();
 
         baseElement = el;
+        injectStylesForElement(baseElement);
         baseElement.classList.add('distancer-base');
     }
 
@@ -271,6 +295,7 @@
 
         clearHover();
         hoverElement = el;
+        injectStylesForElement(hoverElement);
         hoverElement.classList.add('distancer-hover');
     }
 
@@ -291,6 +316,7 @@
 
         clearTarget();
         targetElement = el;
+        injectStylesForElement(targetElement);
         targetElement.classList.add('distancer-target');
     }
 
@@ -380,7 +406,8 @@
         if (el.id) s += `#${el.id}`;
         if (el.className && typeof el.className === 'string') {
             const classes = el.className.trim().split(/\s+/).filter(Boolean);
-            if (classes.length) s += '.' + classes.join('.');
+            const filteredClasses = classes.filter(c => !c.startsWith('distancer-'));
+            if (filteredClasses.length) s += '.' + filteredClasses.join('.');
         }
         return s;
     }
@@ -394,8 +421,10 @@
         let py = y + off;
         const vw = innerWidth, vh = innerHeight;
         const box = tooltipEl.getBoundingClientRect();
+
         if (px + box.width + 8 > vw) px = Math.max(8, vw - box.width - 8);
         if (py + box.height + 8 > vh) py = Math.max(8, vh - box.height - 8);
+
         tooltipEl.style.left = `${px}px`;
         tooltipEl.style.top = `${py}px`;
     }

@@ -2,10 +2,14 @@
     const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
     let highlightEnabled = false;
     let tooltipEl = null;
+    let overlayContainerEl = null;
     let highlightedChain = [];
-    const prevStyles = new WeakMap();
 
     function enableHighlighter() {
+        if (highlightEnabled) {
+            return;
+        }
+
         tooltipEl = document.createElement('div');
         Object.assign(tooltipEl.style, {
             position: 'fixed',
@@ -19,154 +23,177 @@
             zIndex: '2147483647',
             transition: 'opacity .12s',
             opacity: '0',
-
             maxWidth: '80vw',
             whiteSpace: 'normal',
             overflowWrap: 'break-word',
             wordBreak: 'break-word',
             boxShadow: '0 2px 10px rgba(0,0,0,.3)',
-
             fontFamily: 'system-ui, Arial, sans-serif',
         });
         document.documentElement.appendChild(tooltipEl);
 
+        overlayContainerEl = document.createElement('div');
+        Object.assign(overlayContainerEl.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100vw',
+            height: '100vh',
+            pointerEvents: 'none',
+            zIndex: '2147483646', // Tuż pod tooltipem
+            overflow: 'hidden',
+        });
+        document.documentElement.appendChild(overlayContainerEl);
+
         document.addEventListener('pointerover', onPointerOver, true);
         document.addEventListener('pointermove', onPointerMove, true);
         document.addEventListener('pointerout', onPointerOut, true);
+        document.addEventListener('scroll', onScroll, true);
         highlightEnabled = true;
     }
 
     function disableHighlighter() {
-        clearHighlights();
+        if (!highlightEnabled) {
+            return;
+        }
+
         document.removeEventListener('pointerover', onPointerOver, true);
         document.removeEventListener('pointermove', onPointerMove, true);
         document.removeEventListener('pointerout', onPointerOut, true);
+        document.removeEventListener('scroll', onScroll, true);
+
         if (tooltipEl?.parentNode) {
             tooltipEl.parentNode.removeChild(tooltipEl);
         }
+        if (overlayContainerEl?.parentNode) {
+            overlayContainerEl.parentNode.removeChild(overlayContainerEl);
+        }
+
         tooltipEl = null;
+        overlayContainerEl = null;
+        highlightedChain = [];
         highlightEnabled = false;
+    }
+
+    function getElementChain(e) {
+        if (e.composedPath) {
+            return e.composedPath().filter(node => node instanceof Element);
+        }
+        return [];
     }
 
     function onPointerOver(e) {
         if (!highlightEnabled) {
             return;
         }
-        if (e.target === tooltipEl) {
+        const chain = getElementChain(e);
+        if (!chain.length || chain.includes(tooltipEl) || chain.includes(overlayContainerEl)) {
             return;
         }
-        applyHighlights(e.target);
-        updateTooltip(e);
+
+        applyHighlights(chain);
+        updateTooltip(e, chain);
     }
 
     function onPointerMove(e) {
         if (!highlightEnabled) {
             return;
         }
-        if (!highlightedChain.length) {
-            applyHighlights(e.target);
+        const chain = getElementChain(e);
+        if (!chain.length || chain.includes(tooltipEl) || chain.includes(overlayContainerEl)) {
+            return;
         }
-        updateTooltip(e);
+
+        applyHighlights(chain);
+        updateTooltip(e, chain);
     }
 
     function onPointerOut(e) {
         if (!highlightEnabled) {
             return;
         }
-        if (highlightedChain.length && highlightedChain[0] === e.target) {
+        const chain = getElementChain(e);
+        if (highlightedChain.length && highlightedChain[0] === chain[0]) {
             clearHighlights();
             if (tooltipEl) tooltipEl.style.opacity = '0';
         }
     }
 
-    function applyHighlights(target) {
-        if (!(target instanceof Element)) {
+    // Aktualizacja nakładek przy scrollowaniu
+    function onScroll() {
+        if (!highlightEnabled || !highlightedChain.length) {
+            return;
+        }
+        drawOverlays(highlightedChain);
+    }
+
+    function applyHighlights(chain) {
+        highlightedChain = chain;
+        drawOverlays(chain);
+        if (tooltipEl) tooltipEl.style.opacity = '1';
+    }
+
+    function drawOverlays(chain) {
+        if (!overlayContainerEl) {
             return;
         }
 
-        const chain = [];
-        let cur = target;
-        while (cur && cur.nodeType === 1) {
-            chain.push(cur);
-            if (cur === document.documentElement) break;
-            cur = cur.parentElement;
-        }
+        overlayContainerEl.innerHTML = '';
 
-        if (arraysShallowEqual(chain, highlightedChain)) return;
+        const reversedChain = [...chain].reverse();
 
-        clearHighlights();
+        reversedChain.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) {
+                return;
+            }
 
-        chain.forEach((el, idx) => {
-            if (!prevStyles.has(el)) {
-                prevStyles.set(el, {
-                    outline: el.style.outline,
-                    outlineOffset: el.style.outlineOffset,
-                    backgroundColor: el.style.backgroundColor,
+            const box = document.createElement('div');
+            Object.assign(box.style, {
+                position: 'absolute',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+            });
+
+            const isTarget = (el === chain[0]);
+
+            if (isTarget) {
+                Object.assign(box.style, {
+                    backgroundColor: 'rgba(0, 81, 255, 0.2)',
+                    outline: '3px solid #0051ff',
+                    outlineOffset: '-3px',
+                    zIndex: '10',
+                });
+            } else {
+                Object.assign(box.style, {
+                    outline: '1px dashed #ff004c',
+                    outlineOffset: '-1px',
+                    zIndex: '1',
                 });
             }
-            if (idx === 0) {
-                el.style.setProperty('outline', '3px solid blue', 'important');
-                el.style.setProperty('outline-offset', '-1px', 'important');
-                el.style.setProperty('background-color', 'rgba(0,0,255,.08)', 'important');
-            } else {
-                el.style.setProperty('outline', '1px dashed red', 'important');
-                el.style.setProperty('outline-offset', '-1px', 'important');
-            }
-        });
 
-        highlightedChain = chain;
-        if (tooltipEl) {
-            tooltipEl.style.opacity = '1';
-        }
+            overlayContainerEl.appendChild(box);
+        });
     }
 
     function clearHighlights() {
-        if (!highlightedChain.length) {
-            return;
-        }
-        highlightedChain.forEach((el) => {
-            const prev = prevStyles.get(el);
-            if (prev) {
-                el.style.outline = prev.outline || '';
-                el.style.outlineOffset = prev.outlineOffset || '';
-                el.style.backgroundColor = prev.backgroundColor || '';
-                prevStyles.delete(el);
-            } else {
-                el.style.removeProperty('outline');
-                el.style.removeProperty('outline-offset');
-                el.style.removeProperty('background-color');
-            }
-        });
         highlightedChain = [];
+        if (overlayContainerEl) overlayContainerEl.innerHTML = '';
     }
 
-    function arraysShallowEqual(a, b) {
-        if (a.length !== b.length) {
-            return false;
-        }
-        for (let i = 0; i < a.length; i++) {
-            if (a[i] !== b[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function updateTooltip(e) {
-        if (!tooltipEl || !(e.target instanceof Element)) {
+    function updateTooltip(e, chain) {
+        if (!tooltipEl || !chain || !chain.length) {
             return;
         }
 
-        const dims = [];
-        let cur = e.target;
-        while (cur && cur.nodeType === 1) {
+        const dims = chain.map(cur => {
             const r = cur.getBoundingClientRect();
-            dims.push(`${cur.tagName.toLowerCase()}:${Math.round(r.width)}x${Math.round(r.height)}`);
-            if (cur === document.documentElement) {
-                break;
-            }
-            cur = cur.parentElement;
-        }
+            return `${cur.tagName.toLowerCase()}:${Math.round(r.width)}x${Math.round(r.height)}`;
+        });
         tooltipEl.textContent = dims.join(', ');
 
         const off = 14;

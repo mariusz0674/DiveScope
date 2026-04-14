@@ -15,6 +15,18 @@
     let horizontalDistanceLabel = null;
     let verticalDistanceLabel = null;
 
+    function getDeepElementFromPoint(x, y) {
+        let el = document.elementFromPoint(x, y);
+        while (el && el.shadowRoot) {
+            const shadowEl = el.shadowRoot.elementFromPoint(x, y);
+            if (!shadowEl || shadowEl === el) {
+                break;
+            }
+            el = shadowEl;
+        }
+        return el;
+    }
+
     function createGuidelines() {
         if (horizontalLine || verticalLine) return;
 
@@ -285,7 +297,7 @@
     function onDocumentMouseMove(e) {
         if (isDraggingHorizontal || isDraggingVertical) return;
 
-        const element = document.elementFromPoint(e.clientX, e.clientY);
+        const element = getDeepElementFromPoint(e.clientX, e.clientY);
 
         if (!element ||
             element === horizontalLine ||
@@ -324,7 +336,6 @@
 
             const verticalDistance = Math.min(distanceTop, distanceBottom);
             const horizontalDistance = Math.min(distanceLeft, distanceRight);
-
 
             if (distanceLineHorizontal) {
                 distanceLineHorizontal.style.display = 'block';
@@ -424,7 +435,7 @@
     }
 
     function onCrosshairMouseMove(e) {
-        const element = document.elementFromPoint(e.clientX, e.clientY);
+        const element = getDeepElementFromPoint(e.clientX, e.clientY);
 
         if (!element ||
             element === highlightOverlay ||
@@ -455,7 +466,6 @@
         }
 
         if (tooltip && horizontalLine && verticalLine) {
-
             tooltip.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <div>Snap: ${snapHorizontal} / ${snapVertical}</div>
@@ -489,7 +499,6 @@
         console.log(`Guidelines snapped to element: ${snapHorizontal}=${snapHorizontal === 'left' ? rect.left : rect.right}px, ${snapVertical}=${snapVertical === 'top' ? rect.top : rect.bottom}px`);
     }
 
-
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'guidelines:active') {
             enableGuidelines();
@@ -517,4 +526,3 @@
         return true;
     });
 })();
-
